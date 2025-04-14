@@ -1,4 +1,4 @@
-# data-analyze-consumers
+# customer-personality-analysis
 Basic analyzation of consumers segmentation in order to decide business strategies 
 ## GROUP MEMBERS
 **1. Phan Trọng Phú - 23133**
