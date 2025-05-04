@@ -1,0 +1,598 @@
+---
+title: "Phân tích và Phân khúc Khách hàng dựa trên Dữ liệu Marketing"
+author: "Đỗ Kiến Hưng
+Nguyễn Văn Quang Duy
+Phan Trọng Phú
+Phan Trọng Quí"
+date: "2025-05-03"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    toc_float: true
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+# 1. Tóm tắt (Abstract)
+
+Dự án này tập trung vào việc phân tích dữ liệu khách hàng từ một chiến dịch marketing nhằm hiểu rõ hơn về hành vi mua sắm và xác định các phân khúc khách hàng tiềm năng. Sử dụng bộ dữ liệu "marketing_campaign.csv" thu thập từ Kaggle, bao gồm thông tin về nhân khẩu học, lịch sử chi tiêu cho các loại sản phẩm khác nhau, và phản hồi đối với các chiến dịch quảng cáo trước đây, nghiên cứu này áp dụng ngôn ngữ R và các kỹ thuật phân tích dữ liệu hiện đại. Các phương pháp chính được sử dụng bao gồm tiền xử lý dữ liệu, phân tích dữ liệu khám phá (EDA) thông qua trực quan hóa, và xây dựng ba mô hình học máy: Phân cụm K-Means để xác định các nhóm khách hàng có đặc điểm tương đồng, Hồi quy Logistic để dự đoán khả năng khách hàng chấp nhận ưu đãi marketing (biến Response), và Rừng ngẫu nhiên (Random Forest) để đánh giá tầm quan trọng của các yếu tố ảnh hưởng đến hành vi khách hàng và dự đoán tổng chi tiêu. Kết quả phân tích đã xác định được [ví dụ: 4] phân khúc khách hàng chính với các đặc điểm riêng biệt về chi tiêu và nhân khẩu học. Đồng thời, các mô hình dự đoán đã chỉ ra rằng các yếu tố như [ví dụ: thu nhập, tổng chi tiêu trước đây, số lần chấp nhận chiến dịch cũ] có ảnh hưởng đáng kể đến quyết định mua hàng và phản hồi của khách hàng. Những kết quả này cung cấp cơ sở dữ liệu vững chắc, hỗ trợ doanh nghiệp xây dựng các chiến lược marketing cá nhân hóa và hiệu quả hơn cho từng nhóm đối tượng mục tiêu.
+
+# 2. Giới thiệu (Introduction)
+
+Trong bối cảnh thị trường ngày càng cạnh tranh, việc thấu hiểu khách hàng không chỉ là một lợi thế mà đã trở thành yếu tố then chốt quyết định sự thành công của doanh nghiệp. Phân tích hành vi và phân khúc khách hàng cho phép các công ty tối ưu hóa nguồn lực, cá nhân hóa thông điệp marketing, phát triển sản phẩm phù hợp và nâng cao trải nghiệm khách hàng, từ đó gia tăng lòng trung thành và doanh thu. Bộ dữ liệu "Customer Personality Analysis" cung cấp một tập hợp phong phú các thông tin về đặc điểm nhân khẩu học, lịch sử mua sắm đa dạng các mặt hàng (rượu vang, trái cây, thịt,...) và mức độ tương tác của khách hàng với các chiến dịch marketing trước đó. Điều này tạo nền tảng lý tưởng để khám phá và trả lời các câu hỏi kinh doanh quan trọng.
+
+Nghiên cứu này được thực hiện nhằm giải quyết các vấn đề cốt lõi sau:
+
+-   Xác định xem liệu có tồn tại các nhóm khách hàng riêng biệt trong tập dữ liệu hay không, và đặc điểm nổi bật của từng nhóm là gì?
+
+-   Những yếu tố nhân khẩu học, hành vi mua sắm, hay lịch sử tương tác nào có ảnh hưởng lớn nhất đến việc khách hàng quyết định chấp nhận một đề nghị marketing (thể hiện qua biến Response)?
+
+-   Liệu có thể xây dựng mô hình dự đoán hiệu quả khả năng phản hồi của khách hàng hoặc mức độ chi tiêu của họ dựa trên các thông tin có sẵn không?
+
+Để đạt được mục tiêu trên, dự án sẽ thực hiện các nhiệm vụ cụ thể sau bằng ngôn ngữ lập trình R:
+
+1.  **Tiền xử lý dữ liệu:** Làm sạch, xử lý các giá trị thiếu và ngoại lệ, đồng thời tạo ra các biến mới có ý nghĩa (feature engineering) từ dữ liệu gốc.
+
+2.  **Phân tích dữ liệu khám phá (EDA):** Sử dụng các kỹ thuật trực quan hóa để khám phá phân phối của các biến và mối quan hệ giữa chúng, từ đó rút ra những hiểu biết ban đầu.
+
+3.  **Phân khúc khách hàng:** Áp dụng thuật toán Phân cụm K-Means để phân nhóm khách hàng thành các phân khúc có đặc điểm tương đồng và mô tả chi tiết hồ sơ của từng phân khúc.
+
+4.  **Mô hình hóa dự đoán:**
+
+    -   Xây dựng mô hình Hồi quy Logistic để xác định các yếu tố ảnh hưởng và dự đoán khả năng khách hàng chấp nhận chiến dịch marketing cuối cùng (Response).
+
+    -   Xây dựng mô hình Rừng ngẫu nhiên (Random Forest) để đánh giá tầm quan trọng của các yếu tố dự đoán tổng chi tiêu (total_spent).
+
+5.  **Đánh giá và đề xuất:** Đánh giá hiệu quả của các mô hình và đưa ra những kết luận, đề xuất mang tính ứng dụng cho hoạt động marketing của doanh nghiệp.
+
+Báo cáo này sẽ trình bày chi tiết quy trình thực hiện, từ việc chuẩn bị dữ liệu, phân tích khám phá, xây dựng và đánh giá các mô hình, cho đến việc thảo luận kết quả và đưa ra kết luận cuối cùng.
+
+# 3. Dữ liệu (Data)
+
+Phần này trình bày chi tiết về bộ dữ liệu nguồn, các biến số được lựa chọn và quy trình tiền xử lý, bao gồm làm sạch và kỹ thuật đặc trưng, nhằm chuẩn bị một bộ dữ liệu thống nhất và phù hợp cho các mô hình phân tích tiếp theo: Phân cụm K-Means, Hồi quy Logistic và Rừng ngẫu nhiên.
+
+## 3.1 Nguồn dữ liệu
+
+Dữ liệu được sử dụng trong nghiên cứu này là bộ dữ liệu "Customer Personality Analysis" được công bố công khai trên nền tảng Kaggle. Bộ dữ liệu gốc có thể được truy cập tại [<https://www.kaggle.com/datasets/imakash3011/customer-personality-analysis>]. File dữ liệu chính là `marketing_campaign.csv`, chứa thông tin về nhân khẩu học, lịch sử mua hàng và phản hồi chiến dịch của 2240 khách hàng.
+
+```{R}
+# Đọc dữ liệu từ file .csv (Lưu ý: separator là tab '\t') 
+customers_raw <- read.csv("marketing_campaign.csv", sep = "\t")  
+# Hiển thị một vài dòng đầu tiên của dữ liệu gốc 
+head(customers_raw)     
+```
+
+## 3.2 Mô tả dữ liệu
+
+Bộ dữ liệu gốc bao gồm r ncol(customers_raw) biến và r nrow(customers_raw) quan sát. Các biến số cung cấp thông tin đa dạng về khách hàng, có thể được nhóm thành các loại chính như sau:
+
+-   **Nhân khẩu học:** Year_Birth, Education, Marital_Status, Income, Kidhome, Teenhome.
+
+-   **Quan hệ với công ty:** Dt_Customer, Recency, Complain.
+
+-   **Chi tiêu sản phẩm (2 năm qua):** MntWines, MntFruits, MntMeatProducts, MntFishProducts, MntSweetProducts, MntGoldProds.
+
+-   **Tương tác khuyến mãi:** NumDealsPurchases, AcceptedCmp1 - AcceptedCmp5, Response (biến mục tiêu chính cho phân loại).
+
+-   **Kênh mua hàng:** NumWebPurchases, NumCatalogPurchases, NumStorePurchases, NumWebVisitsMonth.
+
+-   **Biến không sử dụng:** ID, Z_CostContact, Z_Revenue.
+
+```{R}
+# Xem cấu trúc dữ liệu gốc 
+str(customers_raw) 
+# Hoặc sử dụng glimpse từ dplyr để có cái nhìn gọn hơn 
+library(dplyr) 
+glimpse(customers_raw)     
+```
+
+## 3.3 Tiền xử lý dữ liệu (Data Preprocessing)
+
+Để đảm bảo chất lượng và tính phù hợp của dữ liệu cho cả ba mô hình, các bước tiền xử lý sau được thực hiện:
+
+### 3.3.1 Làm sạch dữ liệu (Xử lý NA)
+
+-   **Giá trị thiếu (NA):** Kiểm tra cho thấy cột Income có 24 giá trị NA. Do chiếm tỷ lệ nhỏ, các hàng chứa giá trị NA này đã bị loại bỏ.
+
+-   **Giá trị ngoại lệ (Outliers):** Sử dụng biểu đồ hộp, các giá trị ngoại lệ trong Year_Birth (dẫn đến tuổi \> 100) và Income (ví dụ: \> 600000) đã được xác định và loại bỏ khỏi bộ dữ liệu để tăng tính ổn định cho các phân tích.
+
+```{R}
+# Nạp thư viện cần thiết
+library(dplyr)
+library(lubridate)
+
+# 1. Loại bỏ NA trong Income
+customers_clean <- customers_raw %>% filter(!is.na(Income))
+
+# 2. Tính tuổi tạm thời và lọc outlier về tuổi và thu nhập
+# Sử dụng 2014 làm năm tham chiếu 
+customers_filtered <- customers_clean %>%
+  mutate(Age_temp = 2014 - Year_Birth) %>%
+  filter(Age_temp <= 100 & Age_temp >= 18) %>% # Giữ tuổi hợp lý
+  filter(Income < 600000) %>% # Loại bỏ thu nhập quá cao (có thể điều chỉnh)
+  select(-Age_temp) 
+
+nrow(customers_filtered) # Xem số quan sát còn lại
+```
+
+### 3.3.2 Kỹ thuật đặc trưng (Feature Engineering)
+
+Các biến mới được tạo ra từ dữ liệu gốc để làm giàu thông tin và phục vụ tốt hơn cho các mô hình:
+
+-   **Age:** Tuổi của khách hàng (tính đến 2014).
+
+-   **total_spent:** Tổng chi tiêu cho 6 loại sản phẩm chính. Biến này hữu ích cho EDA và diễn giải cụm K-Means.
+
+-   **log_total_spent:** Logarit tự nhiên của (total_spent + 1). Đây sẽ là biến mục tiêu cho mô hình hồi quy Random Forest.
+
+-   **Child_Total:** Tổng số con cái (trẻ nhỏ + thanh thiếu niên).
+
+-   **AcceptedCmp_Total:** Tổng số chiến dịch (1-5) khách hàng đã chấp nhận.
+
+-   **Days_Customer:** Số ngày kể từ khi khách hàng đăng ký.
+
+**Loại bỏ biến:** Các biến không cần thiết hoặc đã được tổng hợp như ID, Year_Birth, Dt_Customer, Kidhome, Teenhome, các biến AcceptedCmp riêng lẻ, Z_CostContact, Z_Revenue được loại bỏ. Các biến chi tiêu thành phần (Mnt...) cũng được loại bỏ khỏi tập dữ liệu cuối cùng sau khi đã tính total_spent và log_total_spent, để tránh rò rỉ thông tin khi dự đoán tổng chi tiêu.
+
+```{r}
+# Tìm ngày đăng ký cuối cùng làm mốc
+max_date <- max(as.Date(customers_filtered$Dt_Customer, format="%d-%m-%Y"), na.rm = TRUE)
+
+customers_final <- customers_filtered %>%
+  mutate(
+    Age = 2014 - Year_Birth,
+    total_spent = MntWines + MntFruits + MntMeatProducts + MntFishProducts + MntSweetProducts + MntGoldProds,
+    log_total_spent = log1p(total_spent), 
+    Child_Total = Kidhome + Teenhome,
+    AcceptedCmp_Total = AcceptedCmp1 + AcceptedCmp2 + AcceptedCmp3 + AcceptedCmp4 + AcceptedCmp5,
+    Days_Customer = as.numeric(max_date - as.Date(Dt_Customer, format="%d-%m-%Y"))
+  ) %>%
+  # Chọn các cột cuối cùng 
+  select(
+    # Các biến độc lập (Predictors)
+    Education, Marital_Status, Income, Recency, Complain, Age, Child_Total, 
+    AcceptedCmp_Total, Days_Customer, 
+    NumDealsPurchases, NumWebPurchases, NumCatalogPurchases, NumStorePurchases, NumWebVisitsMonth,
+    # Các biến mục tiêu (Outcomes)
+    Response,           # Cho Logistic Regression & RF Phân loại
+    log_total_spent,    # Cho RF Hồi quy
+    total_spent         # Giữ lại để EDA và diễn giải K-Means
+  ) %>%
+  # Chuyển đổi các biến ký tự thành factor
+  mutate(across(where(is.character), as.factor))
+```
+
+## 3.4 Dữ liệu cuối cùng cho phân tích
+
+Sau quá trình tiền xử lý, bộ dữ liệu customers_final bao gồm r nrow(customers_final) khách hàng và r ncol(customers_final) biến đã được chuẩn hóa. Bộ dữ liệu này chứa các thông tin về nhân khẩu học (đã xử lý), hành vi mua hàng, tương tác chiến dịch, tổng chi tiêu (gốc và logarit), và biến phản hồi chiến dịch cuối cùng. Đây là cơ sở dữ liệu sẽ được sử dụng cho các bước Trực quan hóa dữ liệu khám phá (EDA) và xây dựng các mô hình Phân cụm K-Means, Hồi quy Logistic, và Rừng ngẫu nhiên trong các phần tiếp theo.
+
+**Lưu ý:** Tùy thuộc vào yêu cầu cụ thể của từng mô hình, một tập con các biến từ customers_final có thể sẽ được lựa chọn và chuẩn hóa (scaling) phù hợp (ví dụ: K-Means thường yêu cầu dữ liệu số đã được chuẩn hóa; Logistic Regression có thể cần tạo biến giả (dummy variables) cho các yếu tố phân loại).
+
+```{R}
+# Hiển thị vài dòng đầu của dữ liệu cuối cùng 
+head(customers_final)  
+# Xem cấu trúc cuối cùng 
+str(customers_final) 
+glimpse(customers_final)
+```
+
+# 4. Trực quan hóa dữ liệu (Data Visualization / EDA)
+
+Sau khi dữ liệu đã được tiền xử lý, bước tiếp theo là thực hiện Phân tích Dữ liệu Khám phá (Exploratory Data Analysis - EDA) thông qua các kỹ thuật trực quan hóa. Mục tiêu của EDA là tìm hiểu sâu hơn về phân phối của từng biến, khám phá các mối quan hệ tiềm ẩn giữa các biến, và xác định các đặc điểm nổi bật của tập khách hàng, từ đó cung cấp thông tin đầu vào giá trị cho việc xây dựng mô hình.
+
+CODE
+
+## 4.1 Phân tích đơn biến
+
+Phân tích này tập trung vào việc xem xét phân phối của từng biến riêng lẻ.
+
+### 4.1.1 Biến số lượng (Numerical Variables)
+
+Chúng ta sẽ kiểm tra phân phối của các biến số lượng chính như Thu nhập, Tuổi, Tổng chi tiêu (cả gốc và logarit), Số ngày kể từ lần mua cuối (Recency), và Thời gian gắn bó (Days_Customer).
+
+```{R}
+library('ggplot2')
+library('dplyr')
+library('tidyr')
+library('patchwork')
+# Biểu đồ Histogram cho các biến số lượng
+p1 <- ggplot(customers_final, aes(x = Income)) + geom_histogram(bins = 30, fill = "skyblue", color = "black") + ggtitle("Phân phối Thu nhập (Income)") + theme_minimal()
+p2 <- ggplot(customers_final, aes(x = Age)) + geom_histogram(bins = 30, fill = "lightgreen", color = "black") + ggtitle("Phân phối Tuổi (Age)") + theme_minimal()
+p3 <- ggplot(customers_final, aes(x = total_spent)) + geom_histogram(bins = 30, fill = "salmon", color = "black") + ggtitle("Phân phối Tổng chi tiêu (Total Spent)") + theme_minimal()
+p4 <- ggplot(customers_final, aes(x = log_total_spent)) + geom_histogram(bins = 30, fill = "gold", color = "black") + ggtitle("Phân phối Log(Total Spent)") + theme_minimal()
+p5 <- ggplot(customers_final, aes(x = Recency)) + geom_histogram(bins = 30, fill = "orchid", color = "black") + ggtitle("Phân phối Số ngày từ lần mua cuối (Recency)") + theme_minimal()
+p6 <- ggplot(customers_final, aes(x = Days_Customer)) + geom_histogram(bins = 30, fill = "lightblue", color = "black") + ggtitle("Phân phối Thời gian gắn bó (Days Customer)") + theme_minimal()
+
+# Ghép các biểu đồ
+(p1 | p2 | p3) / (p4 | p5 | p6) 
+```
+
+-   **Nhận xét:**
+
+    -   Income và total_spent có phân phối lệch phải rõ rệt, với phần lớn khách hàng tập trung ở mức thu nhập và chi tiêu thấp hơn. Việc sử dụng log_total_spent giúp phân phối gần với dạng chuẩn hơn, phù hợp hơn cho một số mô hình hồi quy.
+
+    -   Age có phân phối tương đối rộng, tập trung chủ yếu ở độ tuổi trung niên.
+
+    -   Recency và Days_Customer có vẻ phân phối khá đều, cho thấy sự đa dạng về thời điểm mua hàng gần nhất và thời gian gắn bó của khách hàng.
+
+### 4.1.2 Biến phân loại (Categorical Variables)
+
+Kiểm tra tần suất xuất hiện của các hạng mục trong biến Học vấn và Tình trạng hôn nhân.
+
+```{r}
+p_edu <- ggplot(customers_final, aes(y = Education, fill = Education)) + geom_bar() + ggtitle("Phân phối Trình độ học vấn (Education)") + theme_minimal() + theme(legend.position = "none")
+p_mar <- ggplot(customers_final, aes(y = Marital_Status, fill = Marital_Status)) + geom_bar() + ggtitle("Phân phối Tình trạng hôn nhân (Marital Status)") + theme_minimal() + theme(legend.position = "none")
+
+p_edu + p_mar
+```
+
+-   **Nhận xét:**
+
+    -   Trình độ học vấn Graduation chiếm đa số, tiếp theo là PhD và Master. Các nhóm 2n Cycle và Basic có số lượng ít hơn đáng kể.
+
+    -   Về tình trạng hôn nhân, nhóm Married và Together (có thể coi là sống chung) chiếm tỷ lệ lớn nhất, tiếp theo là Single và Divorced/Widow. Các nhóm Alone, Absurd, YOLO có số lượng rất nhỏ và có thể cần xem xét gộp nhóm hoặc loại bỏ trong một số phân tích.
+
+## 4.2 Phân tích đa biến
+
+Phần này khám phá mối quan hệ giữa các cặp biến hoặc nhiều biến với nhau.
+
+### 4.2.1 Mối quan hệ giữa các biến số lượng
+
+```{r}
+# Thu nhập vs Tổng chi tiêu
+p_inc_spent <- ggplot(customers_final, aes(x = Income, y = total_spent)) + 
+  geom_point(alpha = 0.5, color = "blue") + 
+  geom_smooth(method = "lm", color = "red", se = FALSE) + # Thêm đường xu hướng tuyến tính
+  ggtitle("Thu nhập vs Tổng chi tiêu") + 
+  theme_minimal()
+
+# Tuổi vs Tổng chi tiêu
+p_age_spent <- ggplot(customers_final, aes(x = Age, y = total_spent)) + 
+  geom_point(alpha = 0.5, color = "green") + 
+  geom_smooth(method = "loess", color = "red", se = FALSE) + # Thêm đường xu hướng tổng quát
+  ggtitle("Tuổi vs Tổng chi tiêu") + 
+  theme_minimal()
+
+p_inc_spent + p_age_spent
+```
+
+-   **Nhận xét:**
+
+    -   Có mối tương quan dương khá rõ ràng giữa Income và total_spent: Khách hàng có thu nhập cao hơn có xu hướng chi tiêu nhiều hơn.
+
+    -   Mối quan hệ giữa Age và total_spent không rõ ràng bằng, có vẻ như chi tiêu tăng nhẹ ở độ tuổi trung niên và giảm ở người lớn tuổi, nhưng độ biến thiên lớn.
+
+    ```{r}
+    library("corrplot")
+    numerical_vars <- customers_final %>% select(where(is.numeric), -Response, -log_total_spent) # Loại biến phân loại và log
+    cor_matrix <- cor(numerical_vars, use = "complete.obs")
+    corrplot(cor_matrix, method = "circle", type = "lower", tl.col = "black", tl.srt = 45)
+    ```
+
+### 4.2.2 Mối quan hệ giữa biến phân loại và biến số lượng
+
+```{r}
+# Học vấn vs Thu nhập và Chi tiêu
+p_edu_inc <- ggplot(customers_final, aes(x = Education, y = Income, fill = Education)) + geom_boxplot() + ggtitle("Thu nhập theo Học vấn") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p_edu_spent <- ggplot(customers_final, aes(x = Education, y = total_spent, fill = Education)) + geom_boxplot() + ggtitle("Tổng chi tiêu theo Học vấn") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Tình trạng hôn nhân vs Thu nhập và Chi tiêu
+p_mar_inc <- ggplot(customers_final, aes(x = Marital_Status, y = Income, fill = Marital_Status)) + geom_boxplot() + ggtitle("Thu nhập theo Tình trạng hôn nhân") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p_mar_spent <- ggplot(customers_final, aes(x = Marital_Status, y = total_spent, fill = Marital_Status)) + geom_boxplot() + ggtitle("Tổng chi tiêu theo Tình trạng hôn nhân") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Số con vs Chi tiêu
+p_child_spent <- ggplot(customers_final, aes(x = as.factor(Child_Total), y = total_spent, fill = as.factor(Child_Total))) + geom_boxplot() + ggtitle("Tổng chi tiêu theo Số con") + xlab("Số con (Tổng)") + theme_minimal()
+
+# Phản hồi chiến dịch vs Chi tiêu
+p_resp_spent <- ggplot(customers_final, aes(x = as.factor(Response), y = total_spent, fill = as.factor(Response))) + geom_boxplot() + ggtitle("Tổng chi tiêu theo Phản hồi (Response)") + xlab("Response (0=No, 1=Yes)") + theme_minimal()
+
+# Ghép các biểu đồ
+(p_edu_inc | p_edu_spent) /
+(p_mar_inc | p_mar_spent) /
+(p_child_spent | p_resp_spent)
+```
+
+-   **Nhận xét:**
+
+    -   Education: Nhóm có trình độ PhD và Master có xu hướng thu nhập và chi tiêu trung bình cao hơn so với nhóm Graduation và đặc biệt là Basic.
+
+    -   Marital_Status: Sự khác biệt về thu nhập và chi tiêu giữa các nhóm tình trạng hôn nhân chính (Married, Together, Single, Divorced, Widow) không quá lớn, nhưng các nhóm nhỏ như Absurd, YOLO, Alone có vẻ có sự khác biệt (cần lưu ý số lượng mẫu nhỏ).
+
+    -   Child_Total: Có xu hướng rõ ràng: số lượng con càng nhiều, tổng chi tiêu trung bình càng giảm.
+
+    -   Response: Khách hàng chấp nhận ưu đãi (Response=1) có xu hướng chi tiêu trung bình cao hơn đáng kể so với nhóm không chấp nhận. Đây là dấu hiệu tốt cho việc sử dụng biến này làm mục tiêu phân loại.
+
+## 4.3 Kết luận sơ bộ từ EDA
+
+Qua phân tích dữ liệu khám phá, một số điểm chính có thể rút ra:
+
+-   Các biến Income và total_spent có phân phối lệch, việc sử dụng phép biến đổi log cho total_spent trong mô hình hồi quy là hợp lý.
+
+-   Có mối quan hệ dương giữa Income và total_spent.
+
+-   Age dường như không có mối quan hệ tuyến tính mạnh với total_spent.
+
+-   Education và Child_Total là các yếu tố nhân khẩu học có vẻ ảnh hưởng rõ rệt đến mức chi tiêu.
+
+-   Khách hàng có Response = 1 thường có mức chi tiêu cao hơn, cho thấy tiềm năng của việc phân tích biến Response.
+
+-   Một số hạng mục trong Marital_Status có số lượng rất nhỏ, cần cân nhắc khi đưa vào mô hình hoặc nên được gộp nhóm.
+
+Những hiểu biết này sẽ là cơ sở quan trọng để lựa chọn biến và diễn giải kết quả cho các mô hình Phân cụm K-Means, Hồi quy Logistic và Rừng ngẫu nhiên ở phần tiếp theo.
+
+# 5. Mô hình hóa dữ liệu (Data Modeling)
+
+Sau khi đã khám phá và hiểu rõ hơn về đặc điểm của dữ liệu thông qua EDA, phần này tập trung vào việc xây dựng và áp dụng các mô hình học máy để giải quyết các câu hỏi nghiên cứu đã đặt ra. Ba phương pháp mô hình hóa chính được lựa chọn, bao gồm học không giám sát (phân cụm) và học có giám sát (phân loại và hồi quy), nhằm cung cấp một cái nhìn đa chiều về hành vi và phân khúc khách hàng.
+
+## 5.1 Giới thiệu các mô hình
+
+Dựa trên mục tiêu của dự án và đặc điểm của dữ liệu, ba mô hình sau đây đã được lựa chọn để triển khai:
+
+1.  **Phân cụm K-Means (K-Means Clustering):**
+    -   **Loại:** Học không giám sát (Unsupervised Learning).
+    -   **Lý do chọn:** Đây là một thuật toán phân cụm phổ biến, hiệu quả và tương đối dễ diễn giải, rất phù hợp để giải quyết mục tiêu chính là xác định các nhóm khách hàng tự nhiên (phân khúc) dựa trên sự tương đồng về các đặc điểm như nhân khẩu học (tuổi, thu nhập, số con) và hành vi mua sắm (tổng chi tiêu, số lần mua hàng, độ gần đây). Việc xác định các phân khúc này giúp doanh nghiệp hiểu rõ hơn về cấu trúc khách hàng của mình.
+2.  **Hồi quy Logistic (Logistic Regression):**
+    -   **Loại:** Học có giám sát - Phân loại (Supervised Learning - Classification).
+    -   **Lý do chọn:** Mô hình này được sử dụng để giải quyết bài toán dự đoán biến nhị phân `Response` (khách hàng có chấp nhận ưu đãi trong chiến dịch cuối cùng hay không). Logistic Regression là một phương pháp phân loại tuyến tính cơ bản, mạnh mẽ và cung cấp khả năng diễn giải tốt về mối quan hệ giữa các biến độc lập (ví dụ: thu nhập, tuổi, lịch sử chấp nhận chiến dịch) và xác suất xảy ra của biến mục tiêu. Điều này giúp xác định các yếu tố thúc đẩy khách hàng phản hồi tích cực với marketing.
+3.  **Rừng ngẫu nhiên (Random Forest):**
+    -   **Loại:** Học có giám sát - Hồi quy (Supervised Learning - Regression).
+    -   **Lý do chọn:** Mô hình này được chọn để giải quyết bài toán dự đoán giá trị liên tục là **tổng chi tiêu** của khách hàng (sử dụng biến `log_total_spent` đã biến đổi logarit). Random Forest là một thuật toán dựa trên tập hợp cây quyết định (ensemble method), có khả năng xử lý các mối quan hệ phi tuyến phức tạp, ít bị ảnh hưởng bởi overfitting hơn so với một cây quyết định đơn lẻ, và cung cấp một thước đo quan trọng về mức độ ảnh hưởng của từng biến độc lập (feature importance) đến việc dự đoán chi tiêu. Việc xác định các yếu tố ảnh hưởng mạnh nhất đến chi tiêu giúp doanh nghiệp hiểu rõ hơn về động lực mua sắm của khách hàng giá trị cao.
+
+Việc áp dụng đồng thời cả ba mô hình này sẽ cho phép chúng ta không chỉ phân khúc khách hàng (K-Means) mà còn dự đoán hành vi cụ thể (Logistic Regression cho `Response`) và giá trị kinh tế (Random Forest cho `log_total_spent`), đồng thời xác định các yếu tố thúc đẩy đằng sau các hành vi và giá trị đó.
+
+## 5.2 Mô hình 1: Phân cụm K-Means (K-Means Clustering)
+
+Mô hình K-Means được áp dụng nhằm mục đích khám phá cấu trúc tiềm ẩn trong dữ liệu và phân chia tập hợp khách hàng thành các nhóm (cụm) riêng biệt, sao cho các khách hàng trong cùng một nhóm có nhiều đặc điểm tương đồng với nhau và khác biệt so với các khách hàng ở nhóm khác.
+
+### 5.2.1 Mục tiêu và Phương pháp
+
+-   **Mục tiêu cụ thể:** Phân khúc khách hàng dựa trên các biến số lượng chính phản ánh đặc điểm nhân khẩu học và hành vi, ví dụ như `Age`, `Income`, `total_spent`, `Recency`, `Child_Total`, `Days_Customer`, và các biến về số lần mua hàng qua các kênh (`Num...Purchases`), số lượt truy cập web (`NumWebVisitsMonth`).
+-   **Phương pháp K-Means:**
+    -   K-Means là một thuật toán phân cụm dựa trên việc tối thiểu hóa tổng phương sai trong mỗi cụm (within-cluster variance). Thuật toán hoạt động bằng cách lặp đi lặp lại hai bước chính:
+        1.  **Gán điểm dữ liệu:** Gán mỗi khách hàng vào cụm có tâm (centroid) gần nhất, thường dựa trên khoảng cách Euclidean.
+        2.  **Cập nhật tâm cụm:** Tính toán lại vị trí tâm của mỗi cụm bằng cách lấy trung bình của tất cả các điểm dữ liệu được gán vào cụm đó.
+    -   Quá trình này lặp lại cho đến khi vị trí các tâm cụm không còn thay đổi đáng kể hoặc đạt đến số vòng lặp tối đa.
+-   **Chuẩn bị dữ liệu:** Do K-Means nhạy cảm với thang đo của các biến, các biến số lượng được lựa chọn cho phân cụm cần được **chuẩn hóa (standardized)** về cùng một thang đo (thường là có giá trị trung bình bằng 0 và độ lệch chuẩn bằng 1) trước khi áp dụng thuật toán. Điều này đảm bảo rằng không có biến nào có ảnh hưởng quá lớn đến kết quả phân cụm chỉ vì đơn vị đo lường của nó lớn hơn.
+-   **Xác định số cụm tối ưu (k):** Một bước quan trọng trong K-Means là xác định số lượng cụm `k` phù hợp nhất. Các phương pháp phổ biến để hỗ trợ quyết định này bao gồm:
+    -   **Phương pháp Elbow (Elbow Method):** Vẽ biểu đồ tổng bình phương sai số trong cụm (Within-Cluster Sum of Squares - WCSS) theo số lượng cụm `k`. Chọn giá trị `k` tại "khuỷu tay" của đồ thị, nơi mà việc tăng thêm `k` không còn làm giảm WCSS một cách đáng kể.
+    -   **Phân tích Silhouette (Silhouette Analysis):** Tính toán chỉ số Silhouette trung bình cho các giá trị `k` khác nhau. Chỉ số Silhouette đo lường mức độ tương đồng của một điểm dữ liệu với cụm của chính nó so với các cụm khác. Giá trị Silhouette trung bình cao hơn cho thấy cấu trúc cụm tốt hơn. Chọn `k` tương ứng với giá trị Silhouette trung bình cao nhất.
+
+### 5.2.2 Triển khai (Implementation)
+
+-   **Lựa chọn biến:** Chọn các biến số lượng phù hợp từ dataframe `customers_final` để đưa vào phân cụm.
+-   **Chuẩn hóa dữ liệu:** Sử dụng hàm `scale()` trong R để chuẩn hóa các biến đã chọn.
+-   **Xác định `k`:** Sử dụng các hàm từ gói `factoextra` (như `fviz_nbclust()`) hoặc tính toán thủ công WCSS/Silhouette để vẽ biểu đồ và chọn `k`.
+-   **Chạy K-Means:** Sử dụng hàm `kmeans()` trong R với số cụm `k` đã xác định và dữ liệu đã chuẩn hóa. Thiết lập `nstart` (số lần khởi tạo ngẫu nhiên tâm cụm) lớn hơn 1 (ví dụ: 25 hoặc 50) để tăng khả năng tìm được giải pháp tối ưu toàn cục.
+-   **Lưu kết quả:** Gán nhãn cụm (cluster assignment) vào lại dataframe gốc (`customers_final`) để phục vụ cho việc phân tích đặc điểm cụm ở phần sau.
+
+```{R}
+# Giả sử các thư viện cần thiết đã được nạp (factoextra, cluster, ggplot2, dplyr)
+library("factoextra")
+library("cluster") 
+```
+
+1.  **Lựa chọn các biến số lượng cho phân cụm**
+
+```{r}
+# Ví dụ: Chọn các biến liên quan đến giá trị và hành vi chính
+cols_for_clustering <- c("Income", "Recency", "Age", "Child_Total", 
+                         "total_spent", "NumDealsPurchases", 
+                         "NumWebPurchases", "NumCatalogPurchases", 
+                         "NumStorePurchases", "NumWebVisitsMonth",
+                         "Days_Customer", "AcceptedCmp_Total") 
+                         
+customers_clustering_data <- customers_final[, cols_for_clustering]
+```
+
+2.  **Chuẩn hóa dữ liệu**
+
+```{r}
+customers_scaled <- scale(customers_clustering_data)
+head(customers_scaled) # Kiểm tra dữ liệu đã chuẩn hóa
+```
+
+3.  **Xác định số cụm tối ưu (k)**
+
+**Sử dụng phương pháp Elbow**
+
+```{r}
+set.seed(123) # Để kết quả có thể tái lập
+fviz_nbclust(customers_scaled, kmeans, method = "wss") + 
+  #wss = within sum square
+  geom_vline(xintercept = 4, linetype = 2) + # Ví dụ nếu chọn k=4
+  labs(subtitle = "Elbow method")
+```
+
+**Sử dụng phương pháp Silhouette**
+
+```{R}
+set.seed(123)
+fviz_nbclust(customers_scaled, kmeans, method = "silhouette") +
+  labs(subtitle = "Silhouette method")
+
+# => Giả sử sau khi xem xét, chúng ta chọn k = 4 (Bạn cần thay đổi giá trị này dựa trên kết quả thực tế)
+optimal_k <- 4 
+```
+
+4.  **Chạy thuật toán K-Means**
+
+```{R}
+set.seed(123) # Để kết quả có thể tái lập
+kmeans_result <- kmeans(customers_scaled, centers = optimal_k, nstart = 50)
+```
+
+5.  **Thêm thông tin cụm vào dataframe gốc**
+
+```{R}
+customers_final$Cluster_KMeans <- as.factor(kmeans_result$cluster)
+
+# Xem số lượng khách hàng trong mỗi cụm
+table(customers_final$Cluster_KMeans)
+```
+
+## 5.3 Mô hình 2: Hồi quy Logistic (Logistic Regression)
+
+Mô hình Hồi quy Logistic được xây dựng nhằm mục đích xác định các yếu tố ảnh hưởng và dự đoán khả năng khách hàng sẽ chấp nhận ưu đãi được đưa ra trong chiến dịch marketing cuối cùng (thể hiện qua biến `Response`).
+
+### 5.3.1 Mục tiêu và Phương pháp
+
+-   **Mục tiêu cụ thể:** Xây dựng một mô hình dự đoán biến `Response` (giá trị 0 hoặc 1) dựa trên các đặc điểm nhân khẩu học (`Age`, `Education`, `Marital_Status`, `Income`, `Child_Total`), hành vi mua sắm (`Recency`, `total_spent`, `Num...Purchases`, `NumWebVisitsMonth`), và lịch sử tương tác với các chiến dịch trước (`AcceptedCmp_Total`, `Complain`, `Days_Customer`).
+-   **Phương pháp Hồi quy Logistic:**
+    -   Đây là một mô hình thống kê thuộc nhóm mô hình tuyến tính tổng quát (Generalized Linear Model - GLM), được sử dụng cho các bài toán phân loại nhị phân.
+    -   Mô hình không dự đoán trực tiếp giá trị 0 hay 1 mà dự đoán **xác suất** để biến mục tiêu nhận giá trị 1 (trong trường hợp này là xác suất khách hàng chấp nhận ưu đãi, P(Response=1)).
+    -   Mô hình sử dụng hàm liên kết logit (logit link function) để biến đổi xác suất (nằm trong khoảng [0, 1]) thành một giá trị tuyến tính có thể chạy từ $-\infty$ đến $+\infty$, dựa trên tổ hợp tuyến tính của các biến độc lập: $logit(P(Response=1)) = ln(\frac{P(Response=1)}{1-P(Response=1)}) = \beta_0 + \beta_1X_1 + \beta_2X_2 + ... + \beta_pX_p$
+    -   Các hệ số $\beta$ ước lượng mức độ ảnh hưởng của từng biến độc lập $X$ lên log-odds của việc Response=1. Giá trị $exp(\beta_i)$ có thể được diễn giải là tỷ lệ thay đổi trong odds ratio khi $X_i$ tăng một đơn vị (giữ các biến khác không đổi).
+-   **Chuẩn bị dữ liệu:**
+    -   **Chia dữ liệu:** Bộ dữ liệu `customers_final` sẽ được chia thành hai phần: tập huấn luyện (training set, ví dụ: 70-80%) để xây dựng mô hình và tập kiểm tra (test set, ví dụ: 20-30%) để đánh giá hiệu quả của mô hình trên dữ liệu mới. Việc chia cần đảm bảo tỷ lệ của biến `Response` được giữ nguyên trong cả hai tập (stratified split).
+    -   **Xử lý biến phân loại:** Các biến phân loại (factor) như `Education`, `Marital_Status` sẽ được mô hình tự động xử lý thông qua việc tạo biến giả (dummy coding) trong quá trình xây dựng mô hình bằng hàm `glm()`.
+    -   **Kiểm tra đa cộng tuyến (Tùy chọn):** Có thể kiểm tra hệ số tương quan giữa các biến độc lập hoặc sử dụng hệ số phóng đại phương sai (Variance Inflation Factor - VIF) để phát hiện và xử lý vấn đề đa cộng tuyến nếu cần thiết.
+
+### 5.3.2 Triển khai (Implementation)
+
+-   **Chia dữ liệu:** Sử dụng hàm `createDataPartition` từ gói `caret` hoặc các hàm tương tự để thực hiện stratified split.
+-   **Xây dựng mô hình:** Sử dụng hàm `glm()` trong R với `family = binomial(link = "logit")` để xây dựng mô hình hồi quy logistic trên tập huấn luyện. Lựa chọn các biến độc lập phù hợp từ `customers_final` (loại bỏ `log_total_spent`, `total_spent`).
+-   **Đánh giá mô hình:** Sử dụng mô hình đã huấn luyện để dự đoán xác suất trên tập kiểm tra (`predict(model, newdata = test_set, type = "response")`). Chuyển đổi xác suất thành dự đoán lớp (0 hoặc 1) dựa trên một ngưỡng (ví dụ: 0.5). Tính toán các chỉ số đánh giá như Confusion Matrix, Accuracy, Precision, Recall, F1-score, và vẽ đường cong ROC để tính AUC bằng các gói như `caret`, `pROC`.
+-   **Diễn giải kết quả:** Sử dụng hàm `summary(model)` để xem xét ý nghĩa thống kê (p-value) và giá trị của các hệ số hồi quy ($\beta$). Tính toán và diễn giải Odds Ratios ($exp(\beta)$).
+
+```{R}
+# Nạp thư viện cần thiết
+library("caret") 
+library("pROC") # Để vẽ ROC và tính AUC
+```
+
+**1. Chuẩn bị dữ liệu cho Logistic Regression**
+
+```{R}
+# Chọn các biến độc lập và biến mục tiêu 'Response'
+# Loại bỏ các biến liên quan đến chi tiêu đã tính log và gốc
+cols_for_logistic <- setdiff(names(customers_final), c("log_total_spent", "total_spent")) 
+logistic_data <- customers_final[, cols_for_logistic]
+
+# Chuyển Response thành factor với levels phù hợp (quan trọng cho caret và confusion matrix)
+logistic_data$Response <- as.factor(make.names(logistic_data$Response)) # Tạo level X0 và X1
+```
+
+**2. Chia dữ liệu thành tập huấn luyện và kiểm tra (ví dụ: 75%/25%)**
+
+```{R}
+set.seed(123) # Để có thể tái lập kết quả chia
+trainIndex <- createDataPartition(logistic_data$Response, p = .75, 
+                                  list = FALSE, 
+                                  times = 1)
+train_set_log <- logistic_data[ trainIndex,]
+test_set_log  <- logistic_data[-trainIndex,]
+
+# Kiểm tra tỷ lệ Response trong 2 tập (đảm bảo stratified)
+prop.table(table(train_set_log$Response))
+prop.table(table(test_set_log$Response))
+```
+
+**3. Xây dựng mô hình Logistic Regression trên tập huấn luyện**
+
+```{R}
+# Sử dụng công thức '.' để bao gồm tất cả các predictors còn lại
+logistic_model <- glm(Response ~ ., data = train_set_log, family = binomial(link = "logit"))
+
+# Xem tóm tắt mô hình để diễn giải hệ số
+summary(logistic_model)
+
+# (Tùy chọn) Kiểm tra đa cộng tuyến
+library(car)
+vif(logistic_model) 
+```
+
+**4. Dự đoán trên tập kiểm tra**
+
+```{R}
+# Dự đoán xác suất P(Response=1) (tức là P(Response=X1))
+probabilities <- predict(logistic_model, newdata = test_set_log, type = "response")
+
+# Chuyển đổi xác suất thành lớp dự đoán (0 hoặc 1) dùng ngưỡng 0.5
+predicted_classes <- ifelse(probabilities > 0.5, "X1", "X0")
+predicted_classes <- as.factor(predicted_classes)
+```
+
+**5. Đánh giá mô hình trên tập kiểm tra (sẽ thực hiện chi tiết ở Phần 6)**
+
+```{R}
+# Ví dụ tạo confusion matrix:
+confusionMatrix(predicted_classes, test_set_log$Response, positive = "X1")
+
+# Ví dụ tính AUC và vẽ ROC:
+roc_curve <- roc(response = test_set_log$Response, predictor = probabilities)
+plot(roc_curve, main = "ROC Curve for Logistic Regression")
+auc(roc_curve) 
+```
+
+# 6. Thực nghiệm, kết quả, và thảo luận (Experiments, Results, and Discussion)
+
+## 6.1 Kết quả Mô hình 1: K-Means
+
+### 6.1.1 Xác định số cụm tối ưu
+
+*(Trình bày kết quả Elbow/Silhouette)*
+
+### 6.1.2 Trực quan hóa cụm
+
+*(Biểu đồ PCA)*
+
+### 6.1.3 Phân tích và Diễn giải đặc điểm cụm
+
+*(Bảng tổng hợp, boxplot so sánh các cụm, đặt tên và mô tả profile)*
+
+## 6.2 Kết quả Mô hình 2: Hồi quy Logistic
+
+### 6.2.1 Đánh giá mô hình
+
+*(Confusion Matrix, Accuracy, Precision, Recall, F1, AUC, ROC curve)*
+
+### 6.2.2 Diễn giải hệ số
+
+*(Phân tích các yếu tố ảnh hưởng đến Response)*
+
+## 6.3 Kết quả Mô hình 3: Rừng ngẫu nhiên
+
+### 6.3.1 Đánh giá mô hình
+
+*(RMSE/MAE hoặc Accuracy/AUC,...)*
+
+### 6.3.2 Tầm quan trọng của biến (Feature Importance)
+
+*(Biểu đồ và phân tích)*
+
+## 6.4 Thảo luận chung
+
+*(So sánh các mô hình, hạn chế)*
+
+# 7. Kết luận (Conclusions)
+
+## 7.1 Tóm tắt kết quả chính
+
+*(Nhắc lại các phát hiện quan trọng)*
+
+## 7.2 Ý nghĩa và đề xuất
+
+*(Ứng dụng thực tế, đề xuất marketing)*
+
+## 7.3 Hướng phát triển tương lai
+
+*(Đề xuất nghiên cứu tiếp theo)*
+
+# 8. Phụ lục (Appendices)
+
+*((Nếu có) Mã nguồn chi tiết, bảng biểu phụ,...)*
+
+# 9. Đóng góp (Contributions)
+
+*(Liệt kê đóng góp của từng thành viên)*
+
+# 10. Tham khảo (References)
+
+*(Danh sách tài liệu tham khảo)*
+
+# 11. Peer Assessment
+
+*(Đánh giá chéo trong nhóm)*
