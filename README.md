@@ -1,5 +1,3 @@
-# Phân tích và Phân khúc Khách hàng dựa trên Dữ liệu Marketing
-
 Đây là đồ án kết thúc môn học "Lập trình R cho Phân tích" của Nhóm 01, thực hiện phân tích dữ liệu khách hàng từ chiến dịch marketing nhằm hiểu rõ hơn về hành vi mua sắm và xác định các phân khúc khách hàng tiềm năng.
 
 ## Giới thiệu Dự án
