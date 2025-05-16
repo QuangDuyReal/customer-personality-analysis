@@ -73,11 +73,11 @@ Trong môi trường kinh doanh cạnh tranh hiện nay, việc hiểu rõ khác
 
 Nghiên cứu này được thực hiện với các mục tiêu chính sau:
 
--   Xác định và mô tả các nhóm khách hàng (phân khúc) có đặc điểm tương đồng trong tập dữ liệu.
+-   Xác định xem liệu có tồn tại các nhóm khách hàng riêng biệt trong tập dữ liệu hay không, và đặc điểm nổi bật của từng nhóm là gì?
 
--   Tìm hiểu các yếu tố ảnh hưởng đến quyết định chấp nhận ưu đãi marketing của khách hàng (biến Response).
+-   Những yếu tố nhân khẩu học, hành vi mua sắm, hay lịch sử tương tác nào có ảnh hưởng lớn nhất đến việc khách hàng quyết định chấp nhận một đề nghị marketing (thể hiện qua biến Response)?
 
--   Xây dựng mô hình dự đoán tổng chi tiêu của khách hàng và xác định các yếu tố tác động đến mức chi tiêu này.
+-   Liệu có thể xây dựng mô hình dự đoán hiệu quả khả năng phản hồi của khách hàng hoặc mức độ chi tiêu của họ dựa trên các thông tin có sẵn không?
 
 Để đạt được các mục tiêu trên, dự án sẽ sử dụng ngôn ngữ R để thực hiện các bước: Tiền xử lý dữ liệu (làm sạch, tạo biến mới) Phân tích dữ liệu khám phá thông qua trực quan hóa Triển khai ba mô hình học máy: Phân cụm K-Means, Hồi quy Logistic, và Hồi quy Tuyến tính Đa biến.
 
@@ -128,6 +128,33 @@ glimpse(customers_raw)
 -   **Giá trị thiếu (NA):** Kiểm tra cho thấy cột Income có 24 giá trị NA. Do chiếm tỷ lệ nhỏ, các hàng chứa giá trị NA này đã bị loại bỏ.
 
 -   **Giá trị ngoại lệ (Outliers):** Sử dụng biểu đồ hộp, các giá trị ngoại lệ trong Year_Birth dẫn đến tuổi \> 100 và \< 18 cùng với Income \> 600000 đã được xác định và loại bỏ khỏi bộ dữ liệu.
+
+```{r}
+customers_temp_age <- customers_clean %>%
+  mutate(Age_calculated = 2014 - Year_Birth)
+
+boxplot(customers_temp_age$Age_calculated,
+       main = "Phân phối Tuổi (trước khi loại bỏ ngoại lệ)",
+       ylab = "Tuổi",
+       col = "skyblue",
+       border = "blue",
+       notch = TRUE)
+abline(h = 100, col = "red", lty = 2) # Vẽ đường ngưỡng tuổi > 100
+abline(h = 18, col = "red", lty = 2)  # Vẽ đường ngưỡng tuổi < 18 
+```
+
+```{r}
+customers_age_filtered <- customers_temp_age %>%
+  filter(Age_calculated <= 100 & Age_calculated >= 18)
+
+boxplot(customers_age_filtered$Income,
+       main = "Phân phối Thu nhập (trước khi loại bỏ ngoại lệ)",
+       ylab = "Thu nhập",
+       col = "lightgreen",
+       border = "darkgreen",
+       notch = TRUE)
+abline(h = 600000, col = "red", lty = 2) # Vẽ đường ngưỡng thu nhập > 600000
+```
 
 ```{r na_outliers_processing, echo=FALSE, message=FALSE, warning=FALSE}
 # 1. Loại bỏ NA trong Income
@@ -825,7 +852,9 @@ kable(significant_coeffs_linear, caption = "Các hệ số có ý nghĩa thống
 
 -   **Các yếu tố làm tăng chi tiêu đáng kể khác:** Mua hàng qua các kênh (`NumWebPurchases`, `NumCatalogPurchases`, `NumStorePurchases`), số lần mua hàng giảm giá (`NumDealsPurchases`), tổng số chiến dịch đã chấp nhận (`AcceptedCmp_Total`), thời gian gắn bó lâu hơn (`Days_Customer`), và thuộc các Phân khúc K-Means 2 và 3 (so với Cụm 1).
 
--   **Các yếu tố làm giảm chi tiêu đáng kể:** Có nhiều con (`Child_Total`), việc khách hàng phàn nàn (`Complain`), và thuộc Phân khúc K-Means 4 (so với Cụm 1). Các yếu tố như `Age`, `Recency`, các mức độ `Education` và `Marital_Status` (so với mức tham chiếu "`Absurd`" và "`2n_Cycle`") không cho thấy ảnh hưởng có ý nghĩa thống kê rõ rệt đến `log_total_spent` trong mô hình này sau khi đã kiểm soát các yếu tố khác.
+-   **Các yếu tố làm giảm chi tiêu đáng kể:** Có nhiều con (`Child_Total`), việc khách hàng phàn nàn (`Complain`), và thuộc Phân khúc K-Means 4 (so với Cụm 1).
+
+-   Các yếu tố như `Age`, `Recency`, các mức độ `Education` và `Marital_Status` (so với mức tham chiếu "`Absurd`" và "`2n_Cycle`") không cho thấy ảnh hưởng có ý nghĩa thống kê rõ rệt đến `log_total_spent` trong mô hình này sau khi đã kiểm soát các yếu tố khác.
 
 **Kết luận từ Hồi quy Tuyến tính:** Mô hình Hồi quy Tuyến tính cho thấy thu nhập là yếu tố quan trọng nhất quyết định tổng chi tiêu của khách hàng. Bên cạnh đó, các hành vi mua sắm tích cực qua nhiều kênh, lịch sử tương tác tốt với chiến dịch, và thuộc các phân khúc khách hàng "Vàng" hoặc "Bạc" cũng góp phần làm tăng chi tiêu. Ngược lại, việc có nhiều con cái, từng phàn nàn, và thuộc phân khúc "Phổ thông" thường liên quan đến mức chi tiêu thấp hơn.
 
